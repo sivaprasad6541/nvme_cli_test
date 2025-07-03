@@ -1,0 +1,339 @@
+
+# Alpine Build Plan Management System - Complete Use Case Documentation
+
+## 🎯 Application Overview
+Alpine is an enterprise-grade Product Lifecycle Management (PLM) application designed for semiconductor and hardware manufacturing companies. It streamlines the management of complex product development programs from conception to end-of-life, with a focus on NAND, DRAM, and ASIC-based products.
+
+## 🏢 Business Context
+**Industry**: Semiconductor/Storage Device Manufacturing  
+**Target Users**: Product Development Teams, Technical Program Managers, Business Units  
+**Scale**: Enterprise-level with role-based access control  
+**Integration**: Microsoft Azure AD, Graph API, Email Systems  
+
+## 👥 User Personas & Roles
+
+### 1. **SuperAdmin**
+- **Who**: Senior Technical Program Managers, Product Directors
+- **Permissions**: Full system access, user management, program creation/modification
+- **Responsibilities**: Strategic program oversight, team coordination, access governance
+
+### 2. **Regular User** 
+- **Who**: Engineers, Analysts, Junior Program Managers
+- **Permissions**: View-only access, can request elevated privileges
+- **Responsibilities**: Program monitoring, data consumption, status reporting
+
+### 3. **Program Manager** (NEW ROLE)
+- **Who**: Mid-level Program Managers, Team Leads
+- **Permissions**: Create/edit assigned programs, manage team members, export data
+- **Responsibilities**: Day-to-day program execution, team coordination, milestone tracking
+
+### 4. **Executive Viewer** (NEW ROLE)
+- **Who**: VPs, Directors, C-level executives
+- **Permissions**: High-level dashboard access, cross-program analytics, strategic reports
+- **Responsibilities**: Strategic decision making, resource allocation, portfolio oversight
+
+## 🔄 Core Use Cases
+
+### UC-001: User Authentication & Access Management
+**Priority**: Critical
+**Complexity**: Medium
+**Dependencies**: Azure AD setup
+
+GIVEN a user needs to access the Alpine system
+WHEN they navigate to the application
+THEN they are redirected to Azure AD authentication
+AND upon successful login, their role permissions are applied
+AND they can request SuperAdmin access if needed
+
+**Acceptance Criteria**:
+- SSO integration works seamlessly
+- Role-based UI elements are displayed correctly
+- Session timeout is configurable (default: 8 hours)
+- Failed login attempts are logged and rate-limited
+
+**Error Scenarios**:
+- Azure AD service unavailable
+- User account disabled/suspended
+- Network connectivity issues
+- Invalid credentials
+
+### UC-002: Program Creation (FOAK - First of a Kind)
+**Priority**: Critical
+**Complexity**: High
+**Dependencies**: Contact API, Timeline calculation engine
+
+GIVEN a SuperAdmin wants to create a new product program
+WHEN they select "Create Program" → "First of a Kind (FOAK)"
+THEN they must provide:
+- Basic Information (Program Name, Code, NAND/DRAM/ASIC specs)
+- Critical Contacts (PDT Lead, TPM, BU Representative)
+- Initial Timeline (NAND QR Date, QS Date)
+AND the system auto-calculates 22 milestone dates
+AND saves the program as a draft for further development
+
+**Business Rules**:
+- Program codes must be unique across the system
+- NAND QR date cannot be in the past
+- QS date must be after QR date
+- At least one critical contact must be assigned
+
+**Validation Rules**:
+- Program name: 3-100 characters, alphanumeric + spaces
+- Program code: 6-20 characters, uppercase alphanumeric
+- Dates: Valid future dates in ISO format
+- Contacts: Valid email addresses from organization domain
+
+### UC-003: Program Creation (Leverage)
+**Priority**: High
+**Complexity**: Medium
+**Dependencies**: Existing program data, Template engine
+
+GIVEN a SuperAdmin wants to create a program based on existing products
+WHEN they select "Create Program" → "Leverage Program"
+THEN they can select an existing program as a template
+AND modify specifications while inheriting base timeline structure
+AND customize contacts and specific milestones as needed
+
+**Template Inheritance Rules**:
+- Timeline structure is copied but dates are recalculated
+- SKU configurations can be inherited or modified
+- Contact assignments are cleared (must be reassigned)
+- Custom fields maintain their structure but reset values
+
+### UC-004: Timeline Management & Milestone Tracking
+**Priority**: Critical
+**Complexity**: High
+**Dependencies**: Date calculation engine, Notification system
+
+GIVEN a program has been created with initial dates
+WHEN the user enters NAND QR and QS dates
+THEN the system automatically calculates milestone dates according to predefined business rules
+
+**Milestone Calculation Matrix**:
+CA (Concept Approval): NAND QR + 1 month
+Staging PDT: NAND QR + 2 months
+Kick Off: NAND QR + 3 months
+SG2: NAND QR + 5 months
+ECR: NAND QR + 8 months
+POR: NAND QR + 12 months
+FDC: NAND QR + 17 months
+ES: NAND QR + 23 months
+SG3: NAND QR + 30 months
+QS/SR: NAND QR + 38 months
+QR: NAND QR + 47 months
+CSE Transfer: NAND QR + 57 months
+SG4: NAND QR + 68 months
+EOL: NAND QR + 80 months
+
+
+**Advanced Timeline Features**:
+- Holiday calendar integration (skip weekends/holidays)
+- Buffer time configuration per milestone type
+- Critical path analysis and dependency mapping
+- What-if scenario modeling for date changes
+
+### UC-005: Critical Contacts Assignment
+**Priority**: High
+**Complexity**: Medium
+**Dependencies**: Microsoft Graph API, Employee directory
+
+GIVEN a program requires team assignments
+WHEN the user selects contact fields (PDT, TPM, BU)
+THEN the system provides Microsoft Graph API integration
+AND displays autocomplete suggestions with employee details
+AND validates contact assignments before saving
+
+**Contact Validation Rules**:
+- Must be active employees in the organization
+- Cannot assign same person to multiple critical roles
+- Must have appropriate job level for assigned role
+- Automatic conflict detection for overloaded resources
+
+### UC-006: SKU Management
+**Priority**: Medium
+**Complexity**: High
+**Dependencies**: Product specification database
+
+GIVEN a program needs product variant definitions
+WHEN the user navigates to SKU management
+THEN they can define product variants with full specifications
+
+**SKU Configuration Options**:
+- Form factors: M.2 2280, M.2 2242, U.2, PCIe AIC, SATA
+- Densities: 128GB, 256GB, 512GB, 1TB, 2TB, 4TB, 8TB
+- Interface types: PCIe 3.0, PCIe 4.0, PCIe 5.0, SATA 3.0
+- Performance tiers: Value, Mainstream, Performance, Enterprise
+- Endurance ratings: Client, Pro, Enterprise
+
+### UC-007: Program Viewing & Monitoring
+**Priority**: High
+**Complexity**: Medium
+**Dependencies**: Data visualization library, Real-time updates
+
+GIVEN any authenticated user wants to review programs
+WHEN they select "View Program"
+THEN they see a comprehensive dashboard with role-appropriate information
+
+**Dashboard Components**:
+- Program health indicators (Red/Yellow/Green status)
+- Timeline Gantt chart with milestone markers
+- Resource allocation and workload distribution
+- Risk assessment and mitigation tracking
+- Budget vs. actual spend analysis
+- Cross-program dependency visualization
+
+### UC-008: Program Updates & Modifications
+**Priority**: High
+**Complexity**: Medium
+**Dependencies**: Change tracking, Notification system
+
+GIVEN a SuperAdmin needs to modify an existing program
+WHEN they select "Update Program" and choose a program
+THEN they can modify program details with full audit trail
+
+**Change Management Features**:
+- Version control for all program modifications
+- Approval workflow for critical changes
+- Impact analysis for timeline modifications
+- Stakeholder notification automation
+- Rollback capability for recent changes
+
+### UC-009: Access Request Workflow
+**Priority**: Medium
+**Complexity**: Medium
+**Dependencies**: Email system, Approval workflow engine
+
+GIVEN a regular user needs elevated privileges
+WHEN they submit an access request
+THEN an automated approval workflow is initiated
+
+**Workflow States**:
+1. **Submitted**: Request logged and pending review
+2. **Under Review**: Assigned to appropriate approver
+3. **Approved**: Access granted with expiration date
+4. **Denied**: Request rejected with reason
+5. **Expired**: Temporary access automatically revoked
+
+### UC-010: Legacy Program Management
+**Priority**: Low
+**Complexity**: Medium
+**Dependencies**: Data migration tools, Archive system
+
+GIVEN historical program data needs to be accessed
+WHEN a SuperAdmin accesses legacy programs
+THEN they can browse, export, and reference historical data
+
+**Legacy Data Features**:
+- Read-only access to archived programs
+- Data export in multiple formats (Excel, PDF, JSON)
+- Historical trend analysis and reporting
+- Migration tools for upgrading legacy data
+
+## 🔧 Technical Use Cases
+
+### TC-001: Draft Management & Auto-save
+**Priority**: Medium
+**Complexity**: Low
+**Dependencies**: Local storage, Periodic sync
+
+GIVEN a user is working on program creation/modification
+WHEN they make changes to form data
+THEN the system automatically saves drafts every 30 seconds
+AND provides visual indicators of save status
+AND allows manual save/restore operations
+
+### TC-002: Data Validation & Error Handling
+**Priority**: Critical
+**Complexity**: Medium
+**Dependencies**: Validation engine, Error reporting
+
+GIVEN a user submits program data
+WHEN validation is performed
+THEN comprehensive error handling provides clear guidance
+
+**Validation Layers**:
+- Client-side: Immediate feedback for format/type errors
+- Server-side: Business rule validation and data integrity
+- Cross-field: Dependency and consistency validation
+- External: API validation for contacts and references
+
+### TC-003: Email Integration & Notifications
+**Priority**: High
+**Complexity**: Medium
+**Dependencies**: Email service, Template engine
+
+GIVEN system events require stakeholder communication
+WHEN notifications are triggered
+THEN appropriate emails are sent with rich content
+
+**Notification Types**:
+- **Immediate**: Critical alerts, system errors
+- **Daily Digest**: Milestone updates, task assignments
+- **Weekly Summary**: Program health reports, upcoming deadlines
+- **Monthly Reports**: Executive summaries, portfolio analytics
+
+### TC-004: Activity Logging & Audit Trail
+**Priority**: High
+**Complexity**: Medium
+**Dependencies**: Logging infrastructure, Data retention policies
+
+GIVEN any user action occurs in the system
+WHEN data is created, modified, or deleted
+THEN comprehensive audit logs are maintained
+
+**Audit Log Structure**:
+```json
+{
+  "timestamp": "2024-01-15T10:30:00Z",
+  "userId": "user@company.com",
+  "action": "UPDATE_PROGRAM",
+  "resourceId": "PROG-2024-001",
+  "changes": {
+    "field": "timeline.qr_date",
+    "oldValue": "2024-06-15",
+    "newValue": "2024-07-01"
+  },
+  "ipAddress": "192.168.1.100",
+  "userAgent": "Mozilla/5.0...",
+  "sessionId": "sess_abc123"
+}
+
+## 🎨 UI/UX Requirements for CRED-like Transformation
+
+### Visual Design Goals
+- **Dark theme with gradient backgrounds**
+- **Glassmorphism effects for cards and modals**
+- **Smooth animations and micro-interactions**
+- **Modern typography (Inter/SF Pro Display)**
+- **Card-based layouts with hover effects**
+- **Intuitive navigation with breadcrumbs**
+
+### Interaction Patterns
+- **Progressive disclosure for complex forms**
+- **Contextual tooltips and help text**
+- **Real-time validation feedback**
+- **Drag-and-drop for timeline adjustments**
+- **Smart autocomplete with rich previews**
+- **Responsive design for mobile/tablet access**
+
+### Performance Requirements
+- **Sub-2 second page load times**
+- **Smooth 60fps animations**
+- **Optimistic UI updates**
+- **Efficient data pagination**
+- **Cached API responses**
+- **Progressive web app capabilities**
+
+## 🔐 Security & Compliance
+
+### Authentication & Authorization
+- **Azure AD integration with SSO**
+- **Role-based access control (RBAC)**
+- **Session management and timeout**
+- **API token security**
+
+### Data Protection
+- **Encrypted data transmission (HTTPS)**
+- **Secure API endpoints**
+- **Input validation and sanitization**
+- **Activity audit trails**
